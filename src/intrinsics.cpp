@@ -341,7 +341,7 @@ static Value *emit_unbox(jl_codectx_t &ctx, Type *to, const jl_cgval_t &x, jl_va
         Type *dest_ty = unboxed->getType()->getPointerTo();
         if (dest->getType() != dest_ty)
             dest = emit_bitcast(ctx, dest, dest_ty);
-        tbaa_decorate(tbaa_dest, ctx.builder.CreateStore(unboxed, dest));
+        tbaa_decorate(tbaa_dest, ctx.builder.CreateAlignedStore(unboxed, dest, julia_alignment(jt)));
         return NULL;
     }
 
@@ -476,9 +476,10 @@ static jl_cgval_t generic_bitcast(jl_codectx_t &ctx, const jl_cgval_t *argv)
         // but if the v.typ is not well known, use llvmt
         if (isboxed)
             vxt = llvmt;
-        vx = tbaa_decorate(v.tbaa, ctx.builder.CreateLoad(
+        vx = tbaa_decorate(v.tbaa, ctx.builder.CreateAlignedLoad(
                     emit_bitcast(ctx, data_pointer(ctx, v),
-                        vxt == T_int1 ? T_pint8 : vxt->getPointerTo())));
+                        vxt == T_int1 ? T_pint8 : vxt->getPointerTo()),
+                    julia_alignment(bt)));
     }
 
     vxt = vx->getType();
